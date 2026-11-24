@@ -1,0 +1,5 @@
+row_id,work_order,stage_seq,stage,input_qty,good_qty,scrap_qty,rework_qty,rework_good
+R001,WO1,1,冲压,1000,950,30,20,10
+R002,WO1,2,焊接,960,912,28,20,10
+R003,WO2,1,冲压,500,490,5,5,4
+R004,WO2,2,焊接,494,470,14,10,8
