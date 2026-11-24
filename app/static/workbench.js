@@ -119,6 +119,66 @@
       if (state.approved) $('download').href = '/api/runs/' + run.run_id + '/evidence';
     } catch (error) { setNotice(error.message); }
   }
+  async function loadApprovedRuns(selected) {
+    var baseline = $('baseline-run');
+    var candidate = $('candidate-run');
+    if (!baseline || !candidate) return;
+    try {
+      var data = await request('/api/runs?approved=true');
+      var runs = data.runs || data.items || [];
+      var options = '<option value="">请选择已签发批次</option>' + runs.map(function (run) {
+        var label = esc((run.profile || '批次') + ' · ' + run.run_id + ' · rev ' + run.revision);
+        return '<option value="' + esc(run.run_id) + '">' + label + '</option>';
+      }).join('');
+      baseline.innerHTML = options;
+      candidate.innerHTML = options;
+      if (selected && selected.baseline) baseline.value = selected.baseline;
+      if (selected && selected.candidate) candidate.value = selected.candidate;
+    } catch (error) { setNotice(error.message); }
+  }
+  function pct(value) {
+    if (value === null || value === undefined) return '--';
+    return (Number(value) * 100).toFixed(2) + '%';
+  }
+  function signedPct(value) {
+    if (value === null || value === undefined) return '--';
+    var number = Number(value) * 100;
+    return (number > 0 ? '+' : '') + number.toFixed(2) + '%';
+  }
+  function renderComparison(data) {
+    var box = $('comparison-result');
+    if (!box) return;
+    $('comparison-status').textContent = data.stale ? '上游已更新 · 旧复盘失效' : (data.conclusion_label || data.conclusion);
+    var rows = (data.comparable_routes || []).map(function (route) {
+      return '<tr><td>' + esc(route.route_key || (route.route || []).join('→')) + '</td>' +
+        '<td class="num">' + pct(route.baseline_yield) + '</td>' +
+        '<td class="num">' + pct(route.candidate_yield) + '</td>' +
+        '<td class="num" data-d="' + esc(route.direction) + '">' + signedPct(route.delta) + '</td>' +
+        '<td>' + esc({down:'下降', up:'上升', flat:'持平', unknown:'无法比较'}[route.direction] || route.direction) + '</td></tr>';
+    }).join('');
+    box.innerHTML =
+      (data.stale ? '<p class="compare-stale">上游签发状态或版本已更新，当前显示的是失效快照；请重跑同一对比刷新记录。</p>' : '') +
+      '<p class="compare-conclusion" data-v="' + esc(data.conclusion) + '"><strong>' + esc(data.conclusion_label || data.conclusion) + '</strong> ' + esc(data.message || '') + '</p>' +
+      '<div class="compare-totals"><span>总良率：' + pct(data.baseline_total_yield) + ' → ' + pct(data.candidate_total_yield) +
+      '（' + (data.total_yield_delta > 0 ? '+' : '') + pct(data.total_yield_delta) + '）</span>' +
+      '<span>共同路线：' + esc(data.comparable_route_count) + ' 条</span></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>路线（工序→顺序）</th><th>改造前</th><th>改造后</th><th>变化</th><th>方向</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="5" class="empty">找不到工序和顺序相同的共同路线，不下结论。</td></tr>') + '</tbody></table></div>';
+  }
+  async function compareRuns() {
+    var baseline = $('baseline-run').value;
+    var candidate = $('candidate-run').value;
+    if (!baseline || !candidate) { setNotice('请选择两批已签发报工'); return; }
+    try {
+      setNotice('');
+      var data = await request('/api/comparisons', {
+        method: 'POST',
+        body: JSON.stringify({baseline_run_id: baseline, candidate_run_id: candidate})
+      });
+      renderComparison(data);
+      await loadApprovedRuns({baseline: baseline, candidate: candidate});
+    } catch (error) { setNotice(error.message); }
+  }
   async function boot() {
     try {
       var catalog = await request('/api/catalog');
@@ -130,8 +190,11 @@
       await loadStage('intake');
     } catch (error) { setNotice(error.message); }
     $('run').addEventListener('click', runBatch);
-    $('sign').addEventListener('click', function () { review('APPROVED'); });
-    $('hold').addEventListener('click', function () { review('HELD'); });
+    $('sign').addEventListener('click', function () { review('APPROVED').then(loadApprovedRuns); });
+    $('hold').addEventListener('click', function () { review('HELD').then(loadApprovedRuns); });
+    if ($('compare-runs')) $('compare-runs').addEventListener('click', compareRuns);
+    if ($('refresh-approved-runs')) $('refresh-approved-runs').addEventListener('click', loadApprovedRuns);
+    loadApprovedRuns();
     $('profile').addEventListener('change', function () {
       state.run = null; state.approved = false;
       $('sign').disabled = true; $('hold').disabled = true; $('download').hidden = true;

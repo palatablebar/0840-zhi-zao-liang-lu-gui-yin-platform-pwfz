@@ -39,6 +39,24 @@
         </div>
       </div>
     </article>
+    <article class="panel" id="panel-comparison">
+      <div class="panel-head"><h2>改造对比复盘</h2><span class="hint" id="comparison-status">选择两批已签发报工</span></div>
+      <div class="review">
+        <div class="compare-selects">
+          <label>改造前
+            <select id="baseline-run"><option value="">请选择已签发批次</option></select>
+          </label>
+          <label>改造后
+            <select id="candidate-run"><option value="">请选择已签发批次</option></select>
+          </label>
+        </div>
+        <div class="review-actions">
+          <button id="compare-runs" type="button">生成/重跑对比</button>
+          <button id="refresh-approved-runs" type="button" class="secondary">刷新批次列表</button>
+        </div>
+        <div id="comparison-result" class="comparison-result" aria-live="polite"></div>
+      </div>
+    </article>
   </section>
 </main>
 {% endblock %}

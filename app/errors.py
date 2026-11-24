@@ -18,6 +18,10 @@ MESSAGES = {
     "GATE_BLOCKED": "存在阻断项，不能签发",
     "NOT_APPROVED": "批次尚未签发",
     "BAD_REQUEST": "请求内容不完整",
+    "COMPARISON_NOT_FOUND": "对比复盘不存在",
+    "STALE_COMPARISON": "上游签发状态或版本已更新，旧复盘已失效",
+    "RUNS_REQUIRED": "请选择两批已签发报工",
+    "SAME_RUN_NOT_ALLOWED": "请选择两个不同批次",
 }
 
 

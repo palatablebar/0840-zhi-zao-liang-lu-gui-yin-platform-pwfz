@@ -29,3 +29,12 @@
   .p0840 .panel, .p0840 .metric { min-width: 0 !important; }
   .p0840 .table-wrap { max-width: 100%; overflow-x: auto; }
 }
+#panel-comparison{grid-column:1 / -1}
+.compare-selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.compare-selects label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.comparison-result{margin-top:10px;display:grid;gap:8px}
+.compare-totals{display:flex;flex-wrap:wrap;gap:12px;font-variant-numeric:tabular-nums}
+.compare-conclusion{margin:0;padding:8px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--surface) 82%,black)}
+.compare-stale{margin:0;padding:8px;border-left:3px solid #d98b42;color:#f0c69a;background:rgba(217,139,66,.12)}
+td[data-d="down"]{color:#ef8a8a}td[data-d="up"]{color:#9bd17b}
+@media (max-width:680px){.compare-selects{grid-template-columns:1fr}}

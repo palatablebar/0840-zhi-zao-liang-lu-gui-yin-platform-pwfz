@@ -3,6 +3,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from app.catalog import SPEC
+from app.compare.policy import aggregate_routes, calculate_total_yield
 from app.domain.calculate import calculate_rows
 from app.domain.decision import decide_rows
 from app.domain.prepare import prepare_rows
@@ -50,6 +51,16 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
               "value": float(item.get(chart_field) or 0),
               "limit": float(item.get("limit") or 0)}
              for item in results[:12]]
+    route_groups = aggregate_routes(results)
+    route_summaries = [{
+        "route": list(group["route"]),
+        "route_key": "→".join(group["route"]),
+        "rolling_yield": group.get("yield"),
+        "yield": group.get("yield"),
+        "input_qty": group.get("input_qty") or group.get("weight"),
+        "weight": group.get("weight"),
+    } for group in route_groups.values()]
+    total_yield_value = calculate_total_yield(results, list(route_groups.values()))
     rows = []
     raw_stage = _stage(upto) <= 2
     if raw_stage:
@@ -58,7 +69,9 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
     else:
         for item in results[:18]:
             rows.append({key: value for key, value in item.items()
-                         if key in {"label", "verdict", "reason", "metric", "limit", "status", "state", "breakdown"}
+                         if key in {"label", "verdict", "reason", "metric", "limit", "status", "state",
+                                    "breakdown", "route", "route_key", "route_signature", "stage_yields",
+                                    "initial_input", "stage_count", "rolling", "input_total", "lost", "problem"}
                          or key in SPEC["columns"] or key in SPEC["result_columns"]})
     source = {"profile": profile, "filename": Path(intake["path"]).name, "sha256": intake["sha256"]}
     payload = {
@@ -72,6 +85,9 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
         "row_kind": "source" if raw_stage else "result",
         "chart": chart,
         "summary": summary,
+        "routes": route_summaries,
+        "total_yield": total_yield_value,
+        "overall_yield": total_yield_value,
         "ledger": ledger,
         "stages": [{"id": "intake", "name": SPEC["stages"][0]},
                    {"id": "prepare", "name": SPEC["stages"][1]},

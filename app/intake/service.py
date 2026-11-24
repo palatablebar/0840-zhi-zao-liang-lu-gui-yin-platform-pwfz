@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import re
 from pathlib import Path
 
 from app.catalog import SPEC
@@ -11,9 +12,14 @@ from app.intake.reader import read_records
 def _path(profile: str, path: str | None):
     if path:
         return Path(path)
-    if profile not in {"clean", "dirty"}:
+    # Built-in profiles are clean/dirty, but allow test- or deployment-added
+    # sample profiles as long as the simple profile name maps inside samples/.
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", str(profile)) or profile in {".", ".."}:
         raise DomainIssue("SAMPLE_UNKNOWN")
-    return SAMPLES / f"{profile}.csv"
+    sample = SAMPLES / f"{profile}.csv"
+    if not sample.is_file():
+        raise DomainIssue("SAMPLE_UNKNOWN")
+    return sample
 
 
 def load(profile: str, path: str | None = None):
